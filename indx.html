@@ -2,104 +2,135 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tasbih Tracker</title>
+  <title>Daily Dhikr Tracker</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 50px;
-      background: #f9f9f9;
-    }
-    #count {
-      font-size: 3em;
-      margin: 20px;
-      color: #2c3e50;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 1.2em;
-      margin: 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      border: none;
-    }
-    .increment { background: #27ae60; color: white; }
-    .reset { background: #e74c3c; color: white; }
-    select {
-      margin-top: 20px;
-      padding: 5px;
-      font-size: 1em;
-    }
+    body { font-family: Arial, sans-serif; background:#f9f9f9; text-align:center; margin:20px; }
+    h1 { color:#2c3e50; }
+    .dhikr { border:1px solid #ccc; border-radius:8px; padding:15px; margin:15px auto; max-width:500px; background:#fff; }
+    .count { font-size:1.5em; margin:10px; color:#27ae60; }
+    button { padding:8px 15px; margin:5px; border:none; border-radius:5px; cursor:pointer; }
+    .increment { background:#27ae60; color:white; }
+    .reset { background:#e74c3c; color:white; }
+    .toggle { background:#2980b9; color:white; }
+    .hidden { display:none; margin-top:10px; text-align:left; }
   </style>
 </head>
 <body>
-  <h1 id="title">Daily Tasbih Tracker</h1>
-  <p id="label">Your Count:</p>
-  <div id="count">0</div>
-  <button class="increment" onclick="increment()" id="btnIncrement">+1</button>
-  <button class="reset" onclick="resetCount()" id="btnReset">Reset</button>
+  <h1>Daily Dhikr Tracker</h1>
 
-  <div>
-    <label for="language">🌐 Language: </label>
-    <select id="language" onchange="setLanguage(this.value)">
-      <option value="en">English</option>
-      <option value="ur">اردو</option>
-      <option value="gu">ગુજરાતી</option>
-    </select>
+  <!-- Subhanallah -->
+  <div class="dhikr">
+    <h2>Subhanallah (×33)</h2>
+    <div id="subhanallahCount" class="count">0</div>
+    <button class="increment" onclick="increment('subhanallahCount',33)">+1</button>
+    <button class="reset" onclick="resetCount('subhanallahCount')">Reset</button>
+  </div>
+
+  <!-- Alhamdulillah -->
+  <div class="dhikr">
+    <h2>Alhamdulillah (×33)</h2>
+    <div id="alhamdulillahCount" class="count">0</div>
+    <button class="increment" onclick="increment('alhamdulillahCount',33)">+1</button>
+    <button class="reset" onclick="resetCount('alhamdulillahCount')">Reset</button>
+  </div>
+
+  <!-- Allahu Akbar -->
+  <div class="dhikr">
+    <h2>Allahu Akbar (×34)</h2>
+    <div id="akbarCount" class="count">0</div>
+    <button class="increment" onclick="increment('akbarCount',34)">+1</button>
+    <button class="reset" onclick="resetCount('akbarCount')">Reset</button>
+  </div>
+
+  <!-- Astaghfirullah -->
+  <div class="dhikr">
+    <h2>Astaghfirullah (×33)</h2>
+    <div id="astaghfirCount" class="count">0</div>
+    <button class="increment" onclick="increment('astaghfirCount',33)">+1</button>
+    <button class="reset" onclick="resetCount('astaghfirCount')">Reset</button>
+  </div>
+
+  <!-- Ayatul Kursi -->
+  <div class="dhikr">
+    <h2>Ayatul Kursi (×1)</h2>
+    <div id="kursiCount" class="count">0</div>
+    <button class="increment" onclick="increment('kursiCount',1)">+1</button>
+    <button class="reset" onclick="resetCount('kursiCount')">Reset</button>
+    <button class="toggle" onclick="toggleText('kursiText')">Show/Hide Ayatul Kursi</button>
+    <div id="kursiText" class="hidden">
+      <p>اللّهُ لاَ إِلـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ... (full Ayatul Kursi text here)</p>
+    </div>
+  </div>
+
+  <!-- Surah Ikhlas -->
+  <div class="dhikr">
+    <h2>Surah Ikhlas (×3)</h2>
+    <div id="ikhlasCount" class="count">0</div>
+    <button class="increment" onclick="increment('ikhlasCount',3)">+1</button>
+    <button class="reset" onclick="resetCount('ikhlasCount')">Reset</button>
+    <button class="toggle" onclick="toggleText('ikhlasText')">Show/Hide Surah Ikhlas</button>
+    <div id="ikhlasText" class="hidden">
+      <p>قُلْ هُوَ ٱللَّهُ أَحَدٌ... (full Surah Ikhlas text)</p>
+    </div>
+  </div>
+
+  <!-- Surah Falaq -->
+  <div class="dhikr">
+    <h2>Surah Falaq (×3)</h2>
+    <div id="falaqCount" class="count">0</div>
+    <button class="increment" onclick="increment('falaqCount',3)">+1</button>
+    <button class="reset" onclick="resetCount('falaqCount')">Reset</button>
+    <button class="toggle" onclick="toggleText('falaqText')">Show/Hide Surah Falaq</button>
+    <div id="falaqText" class="hidden">
+      <p>قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ... (full Surah Falaq text)</p>
+    </div>
+  </div>
+
+  <!-- Surah Nas -->
+  <div class="dhikr">
+    <h2>Surah Nas (×3)</h2>
+    <div id="nasCount" class="count">0</div>
+    <button class="increment" onclick="increment('nasCount',3)">+1</button>
+    <button class="reset" onclick="resetCount('nasCount')">Reset</button>
+    <button class="toggle" onclick="toggleText('nasText')">Show/Hide Surah Nas</button>
+    <div id="nasText" class="hidden">
+      <p>قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ... (full Surah Nas text)</p>
+    </div>
+  </div>
+
+  <!-- After Fajr & Maghrib -->
+  <div class="dhikr">
+    <h2>After Fajr & Maghrib: Allahumma Ajirni Minan-Naar (×7)</h2>
+    <div id="ajirniCount" class="count">0</div>
+    <button class="increment" onclick="increment('ajirniCount',7)">+1</button>
+    <button class="reset" onclick="resetCount('ajirniCount')">Reset</button>
   </div>
 
   <script>
-    // Load saved count from local storage
-    let count = localStorage.getItem("tasbihCount") || 0;
-    document.getElementById("count").textContent = count;
+    // Load saved counts
+    const ids = ["subhanallahCount","alhamdulillahCount","akbarCount","astaghfirCount","kursiCount","ikhlasCount","falaqCount","nasCount","ajirniCount"];
+    ids.forEach(id => {
+      document.getElementById(id).textContent = localStorage.getItem(id) || 0;
+    });
 
-    function increment() {
-      count++;
-      localStorage.setItem("tasbihCount", count);
-      document.getElementById("count").textContent = count;
-    }
-
-    function resetCount() {
-      count = 0;
-      localStorage.setItem("tasbihCount", count);
-      document.getElementById("count").textContent = count;
-    }
-
-    // Language dictionary
-    const translations = {
-      en: {
-        title: "Daily Tasbih Tracker",
-        label: "Your Count:",
-        increment: "+1",
-        reset: "Reset"
-      },
-      ur: {
-        title: "روزانہ تسبیح ٹریکر",
-        label: "آپ کی گنتی:",
-        increment: "+١",
-        reset: "ری سیٹ"
-      },
-      gu: {
-        title: "દૈનિક તસ્બીહ ટ્રેકર",
-        label: "તમારી ગણતરી:",
-        increment: "+૧",
-        reset: "રીસેટ"
+    function increment(id, max) {
+      let val = parseInt(localStorage.getItem(id) || 0);
+      if (val < max) {
+        val++;
+        localStorage.setItem(id, val);
+        document.getElementById(id).textContent = val;
       }
-    };
-
-    function setLanguage(lang) {
-      const t = translations[lang];
-      document.getElementById("title").textContent = t.title;
-      document.getElementById("label").textContent = t.label;
-      document.getElementById("btnIncrement").textContent = t.increment;
-      document.getElementById("btnReset").textContent = t.reset;
-      localStorage.setItem("tasbihLang", lang);
     }
 
-    // Load saved language preference
-    const savedLang = localStorage.getItem("tasbihLang") || "en";
-    document.getElementById("language").value = savedLang;
-    setLanguage(savedLang);
+    function resetCount(id) {
+      localStorage.setItem(id, 0);
+      document.getElementById(id).textContent = 0;
+    }
+
+    function toggleText(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle("hidden");
+    }
   </script>
 </body>
 </html>
