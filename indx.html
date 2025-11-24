@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tasbih Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background: #f9f9f9;
+    }
+    #count {
+      font-size: 3em;
+      margin: 20px;
+      color: #2c3e50;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      margin: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+    }
+    .increment { background: #27ae60; color: white; }
+    .reset { background: #e74c3c; color: white; }
+    select {
+      margin-top: 20px;
+      padding: 5px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Daily Tasbih Tracker</h1>
+  <p id="label">Your Count:</p>
+  <div id="count">0</div>
+  <button class="increment" onclick="increment()" id="btnIncrement">+1</button>
+  <button class="reset" onclick="resetCount()" id="btnReset">Reset</button>
+
+  <div>
+    <label for="language">🌐 Language: </label>
+    <select id="language" onchange="setLanguage(this.value)">
+      <option value="en">English</option>
+      <option value="ur">اردو</option>
+      <option value="gu">ગુજરાતી</option>
+    </select>
+  </div>
+
+  <script>
+    // Load saved count from local storage
+    let count = localStorage.getItem("tasbihCount") || 0;
+    document.getElementById("count").textContent = count;
+
+    function increment() {
+      count++;
+      localStorage.setItem("tasbihCount", count);
+      document.getElementById("count").textContent = count;
+    }
+
+    function resetCount() {
+      count = 0;
+      localStorage.setItem("tasbihCount", count);
+      document.getElementById("count").textContent = count;
+    }
+
+    // Language dictionary
+    const translations = {
+      en: {
+        title: "Daily Tasbih Tracker",
+        label: "Your Count:",
+        increment: "+1",
+        reset: "Reset"
+      },
+      ur: {
+        title: "روزانہ تسبیح ٹریکر",
+        label: "آپ کی گنتی:",
+        increment: "+١",
+        reset: "ری سیٹ"
+      },
+      gu: {
+        title: "દૈનિક તસ્બીહ ટ્રેકર",
+        label: "તમારી ગણતરી:",
+        increment: "+૧",
+        reset: "રીસેટ"
+      }
+    };
+
+    function setLanguage(lang) {
+      const t = translations[lang];
+      document.getElementById("title").textContent = t.title;
+      document.getElementById("label").textContent = t.label;
+      document.getElementById("btnIncrement").textContent = t.increment;
+      document.getElementById("btnReset").textContent = t.reset;
+      localStorage.setItem("tasbihLang", lang);
+    }
+
+    // Load saved language preference
+    const savedLang = localStorage.getItem("tasbihLang") || "en";
+    document.getElementById("language").value = savedLang;
+    setLanguage(savedLang);
+  </script>
+</body>
+</html>
