@@ -1,1 +1,105 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Daily Adhkar Tasbih Tracker</title> <!-- Load Tailwind CSS for styling --> <script src="https://cdn.tailwindcss.com"></script> <style> /* Custom font */ @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap'); body { font-family: 'Inter', sans-serif; background-color: #f0fdf4; /* Light green/mint background */ min-height: 100vh; padding: 20px; } /* Styling for the individual count buttons for an attractive, tactile feel */ .dhikr-button { transition: all 0.1s ease-in-out; user-select: none; -webkit-tap-highlight-color: transparent; /* Default shadow for interactive lift */ box-shadow: 0 4px 0 0 #064e3b; /* Darker green base */ } .dhikr-button:active { box-shadow: 0 1px 0 0 #064e3b; transform: translateY(3px); } /* Green gradient for buttons */ .bg-gradient-dhikr { background-image: linear-gradient(180deg, #10b981 0%, #059669 100%); } /* Success state for button when target is reached */ .target-reached { background-image: linear-gradient(180deg, #34d399 0%, #10b981 100%); box-shadow: 0 4px 0 0 #047857; } /* Custom style for legible Surah text (or Ayat al-Kursi) */ .surah-text { font-size: 1.25rem; /* Large text for readability */ line-height: 2.2; /* Increased line height */ text-align: right; font-weight: 500; } </style> </head> <body> <div id="app" class="w-full max-w-xl mx-auto p-4 bg-white rounded-2xl shadow-2xl transition-all duration-300"> <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-2">Daily Adhkar Tracker</h1> <p class="text-sm text-center text-gray-500 mb-6">Fajr & Maghrib Dhikr Companion. Your User ID: <span id="user-id-display" class="font-mono text-xs bg-gray-100 p-1 rounded">Loading...</span></p> <!-- Auth Loading State --> <div id="loading-spinner" class="flex flex-col items-center justify-center h-64 text-gray-500"> <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle> <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> <p class="mt-4">Securing your session and loading progress...</p> </div> <!-- Main Counter UI (Hidden until loaded) --> <div id="counter-ui" class="hidden"> <div id="dhikr-list" class="space-y-4"> <!-- Dhikr buttons will be dynamically inserted here --> </div> <!-- Global Reset and Information --> <div class="mt-8 pt-4 border-t border-gray-200"> <button onclick="globalResetConfirmation()" class="w-full py-3 px-4 text-base font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors duration-150 shadow-md dhikr-button" style="box-shadow: 0 4px 0 0 #991b1b;"> Reset All Daily Adhkar Counters </button> </div> </div> <!-- Confirmation Modal (Instead of alert/confirm) --> <div id="reset-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"> <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-xs"> <h3 id="modal-title" class="text-lg font-bold text-gray-800 mb-2">Confirm Reset</h3> <p id="modal-message" class="text-sm text-gray-600 mb-4">Are you sure you want to reset this Dhikr count to zero?</p> <div class="flex justify-end space-x-3"> <button onclick="hideResetModal()" class="py-2 px-4 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"> Cancel </button> <button id="modal-confirm-button" class="py-2 px-4 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"> Yes, Reset </button> </div> </div> </div> </div> <!-- Firebase SDK Imports --> <script type="module"> import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"; import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"; import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"; setLogLevel('Debug'); let db; let auth; let userId = null; let counterRef = null; let isAuthReady = false; // The list of all Dhikr items with their default targets const initialDhikrList = [ { id: 'subhanallah', name: "Subhan'Allah", arabic: 'سُبْحَانَ ٱللَّٰهِ', target: 33, count: 0, notes: 'Praise to God' }, { id: 'alhamdulillah', name: "Alhamdulillah", arabic: 'ٱلْحَمْدُ لِلَّٰهِ', target: 33, count: 0, notes: 'Gratitude to God' }, { id: 'allahuakbar', name: "Allahu Akbar", arabic: 'ٱللَّٰهُ أَكْبَرُ', target: 34, count: 0, notes: 'God is Great' }, { id: 'astagfirullah', name: "Astagfirullah", arabic: 'أَسْتَغْفِرُ ٱللَّٰهَ', target: 33, count: 0, notes: 'Seeking Forgiveness' }, { id: 'ayatulkursi', name: "Ayat al-Kursi", arabic: 'ٱللَّهُ لَا إِلَٰهَ إِلَّا هُوَ ٱلْحَيُّ ٱلْقَيُّ', target: 1, count: 0, notes: 'The Throne Verse (Recitation)' }, { id: 'ikhlas', name: "Surah Ikhlas", arabic: 'قُلْ هُوَ اللَّهُ أَحَدٌ', target: 3, count: 0, notes: 'The Sincerity (Recitation)' }, { id: 'falaq', name: "Surah Falaq", arabic: 'قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ', target: 3, count: 0, notes: 'The Daybreak (Recitation)' }, { id: 'naas', name: "Surah Naas", arabic: 'قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ', target: 3, count: 0, notes: 'Mankind (Recitation)' }, { id: 'minannar', name: "Allahumma Ajirni minan nar", arabic: 'اللهم أجرني من النار', target: 7, count: 0, notes: 'After Fajr & Maghrib' } ]; let currentDhikrList = []; // This will hold the live, mutable state. // Full Arabic texts for Surahs and Ayah const surahTexts = { ayatulkursi: { // Ayah 255 of Surah Al-Baqarah arabic: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ۝ ٱللَّهُ لَا إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّ ۚ ۝ لَا تَأْخُذُهُۥ سِنَةٌ وَلَا نَوْمٌ ۚ ۝ لَّهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَمَا فِى ٱلْأَرْضِ ۗ ۝ مَن ذَا ٱلَّذِى يَشْفَعُ عِندَهُۥٓ إِلَّا بِإِذْنِهِۦ ۚ ۝ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ ۝ وَلَا يُحِيطُونَ بِشَىْءٍ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَآءَ ۚ ۝ وَسِعَ كُرْسِيُّهُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ ۖ ۝ وَلَا يَـُٔودُهُۥ حِفْظُهُمَا ۚ وَهُوَ ٱلْعَلِىُّ ٱلْعَظِيمُ ۝" }, ikhlas: { arabic: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ۝ قُلْ هُوَ ٱللَّهُ أَحَدٌ ۝ ٱللَّهُ ٱلصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌ ۝" }, falaq: { arabic: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ۝ قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ ٱلنَّفَّٰثَٰتِ فِى ٱلْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ ۝" }, naas: { arabic: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ۝ قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ ۝ مَلِكِ ٱلنَّاسِ ۝ إِلَٰهِ ٱلنَّاسِ ۝ مِن شَرِّ ٱلْوَسْوَاسِ ٱلْخَنَّاسِ ۝ ٱلَّذِى يُوَسْوِسُ فِى صُدُورِ ٱلنَّاسِ ۝ مِنَ ٱلْجِنَّةِ وَٱلنَّاسِ ۝" } }; // DOM elements const userIdDisplayEl = document.getElementById('user-id-display'); const loadingSpinner = document.getElementById('loading-spinner'); const counterUI = document.getElementById('counter-ui'); const dhikrListContainer = document.getElementById('dhikr-list'); const resetModal = document.getElementById('reset-modal'); const modalTitle = document.getElementById('modal-title'); const modalMessage = document.getElementById('modal-message'); const modalConfirmButton = document.getElementById('modal-confirm-button'); // --- Firebase Initialization and Authentication --- const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}'); const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; if (Object.keys(firebaseConfig).length > 0) { const app = initializeApp(firebaseConfig); db = getFirestore(app); auth = getAuth(app); authenticate(); } else { console.error("Firebase config is missing. Data persistence will not work."); } async function authenticate() { try { if (initialAuthToken) { await signInWithCustomToken(auth, initialAuthToken); } else { await signInAnonymously(auth); } } catch (error) { console.error("Authentication failed:", error); } } onAuthStateChanged(auth, (user) => { if (user) { userId = user.uid; userIdDisplayEl.textContent = userId; isAuthReady = true; // Define the document reference path const collectionPath = `artifacts/${appId}/users/${userId}/tasbihCountersDaily`; counterRef = doc(db, collectionPath, 'dailyAdhkarSet'); listenForUpdates(); } else { console.log("Waiting for user authentication..."); } }); // --- Firestore Data Operations --- function listenForUpdates() { if (!isAuthReady || !counterRef) return; onSnapshot(counterRef, (docSnap) => { loadingSpinner.classList.add('hidden'); counterUI.classList.remove('hidden'); if (docSnap.exists() && docSnap.data().adhkarList) { const loadedList = docSnap.data().adhkarList; // Basic merging logic: load the counts from Firestore but use // the default structure (names, targets) to ensure consistency. currentDhikrList = initialDhikrList.map(initialItem => { const savedItem = loadedList.find(item => item.id === initialItem.id); return { ...initialItem, count: savedItem ? savedItem.count : 0 }; }); console.log("Dhikr list loaded/updated from Firestore:", currentDhikrList); } else { // Document doesn't exist, use the initial full list console.log("No saved data found. Setting initial Dhikr list."); currentDhikrList = [...initialDhikrList]; saveCounterData(); // Initialize document } renderUI(); }, (error) => { console.error("Error listening to counter data:", error); }); } async function saveCounterData() { if (!counterRef || !isAuthReady) return; try { // Prepare only necessary data for storage to keep it clean const dataToSave = currentDhikrList.map(({ id, count }) => ({ id, count })); await setDoc(counterRef, { adhkarList: dataToSave, updatedAt: new Date().toISOString() }, { merge: true }); } catch (error) { console.error("Error saving counter data:", error); } } // --- Core Application Logic --- window.incrementCount = function(id) { if (!isAuthReady) return; // Haptic Feedback for mobile feel if (navigator.vibrate) { navigator.vibrate(50); } const item = currentDhikrList.find(d => d.id === id); if (item && item.count < item.target) { item.count += 1; renderUI(); // Debounced save clearTimeout(window.saveTimer); window.saveTimer = setTimeout(saveCounterData, 500); } } window.toggleRecitation = function(id) { const content = document.getElementById(`recitation-content-${id}`); const button = document.getElementById(`recitation-button-${id}`); if (content.classList.contains('hidden')) { content.classList.remove('hidden'); button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.545 10A5.5 5.5 0 0110 4.545V4a1 1 0 012 0v.545A5.5 5.5 0 0117.455 10H18a1 1 0 010 2h-.545A5.5 5.5 0 0110 17.455V18a1 1 0 01-2 0v-.545A5.5 5.5 0 014.545 10z" clip-rule="evenodd" /></svg> Hide Text'; } else { content.classList.add('hidden'); button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg> Read Full Text'; } } window.showResetModal = function(id, isGlobal = false) { let actionText = ''; if (isGlobal) { modalTitle.textContent = "Confirm Global Reset"; modalMessage.textContent = "Are you sure you want to reset ALL 9 Adhkar counters to zero? This action cannot be undone."; actionText = 'global'; } else { const item = currentDhikrList.find(d => d.id === id); modalTitle.textContent = `Reset ${item.name}`; modalMessage.textContent = `Are you sure you want to reset the count for "${item.name}" to zero?`; actionText = id; } modalConfirmButton.onclick = () => { if (actionText === 'global') { resetAllCounts(); } else { resetSingleCount(actionText); } }; resetModal.classList.remove('hidden'); } window.hideResetModal = function() { resetModal.classList.add('hidden'); } function resetSingleCount(id) { const item = currentDhikrList.find(d => d.id === id); if (item) { item.count = 0; hideResetModal(); renderUI(); saveCounterData(); // Force save immediately after reset } } window.globalResetConfirmation = function() { showResetModal(null, true); } function resetAllCounts() { currentDhikrList.forEach(item => item.count = 0); hideResetModal(); renderUI(); saveCounterData(); // Force save immediately after reset } // --- UI Rendering --- function renderUI() { dhikrListContainer.innerHTML = ''; // Clear previous content currentDhikrList.forEach(item => { const isComplete = item.count >= item.target; const progressPercentage = Math.min(100, (item.count / item.target) * 100); let recitationContentHtml = ''; // Check if the item is one of the recitations (Surahs or Ayah) const isRecitation = item.id === 'ikhlas' || item.id === 'falaq' || item.id === 'naas' || item.id === 'ayatulkursi'; if (isRecitation) { const fullText = surahTexts[item.id].arabic; recitationContentHtml = ` <!-- Collapsible Recitation Section --> <div class="mt-4 pt-3 border-t border-gray-100"> <button id="recitation-button-${item.id}" onclick="toggleRecitation('${item.id}')" class="flex items-center justify-center w-full py-2 px-3 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-150"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg> Read Full Text </button> <div id="recitation-content-${item.id}" class="hidden mt-3 p-3 bg-white border border-gray-200 rounded-lg"> <p dir="rtl" class="surah-text text-gray-800">${fullText}</p> </div> </div> `; } const cardHtml = ` <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-lg"> <div class="flex justify-between items-start mb-2"> <div> <h3 class="text-lg font-bold text-gray-800">${item.name} <span class="text-xs font-normal text-gray-500">(${item.notes})</span></h3> <p class="text-2xl font-arabic text-green-700 mt-1" dir="rtl">${item.arabic}</p> </div> <button onclick="showResetModal('${item.id}', false)" class="text-xs text-red-500 hover:text-red-700 transition-colors duration-150 p-1 rounded-full bg-red-50 hover:bg-red-100"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block" viewBox="0 0 20 20" fill="currentColor"> <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.884.664 5.002 5.002 0 00-8.807-1.785A1 1 0 015 6V5a1 1 0 011-1h4a1 1 0 110 2H6a1 1 0 01-1-1v-1a1 1 0 01-1-1z" clip-rule="evenodd" /> </svg> Reset </button> </div> <!-- Recitation Content Insertion Point --> ${recitationContentHtml} <!-- Progress Bar --> <div class="w-full bg-gray-200 rounded-full h-2 my-4"> <div class="h-2 rounded-full transition-all duration-300 ${isComplete ? 'bg-green-600' : 'bg-green-400'}" style="width: ${progressPercentage}%"></div> </div> <!-- Counter and Button --> <div class="flex items-center space-x-4"> <!-- Counter Display --> <div class="flex-shrink-0 text-center w-20"> <span class="block text-4xl font-black ${isComplete ? 'text-green-600' : 'text-gray-900'} leading-none">${item.count}</span> <span class="block text-sm font-medium text-gray-500">of ${item.target}</span> </div> <!-- Increment Button --> <button onclick="incrementCount('${item.id}')" class="flex-grow py-3 text-white font-bold text-lg rounded-xl transition-all duration-150 dhikr-button ${isComplete ? 'target-reached' : 'bg-gradient-dhikr'}" ${isComplete ? 'disabled' : ''}> ${isComplete ? 'COMPLETED' : 'TAP TO COUNT'} </button> </div> </div> `; dhikrListContainer.insertAdjacentHTML('beforeend', cardHtml); }); } </script> </body> </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tasbih Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background: #f9f9f9;
+    }
+    #count {
+      font-size: 3em;
+      margin: 20px;
+      color: #2c3e50;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      margin: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+    }
+    .increment { background: #27ae60; color: white; }
+    .reset { background: #e74c3c; color: white; }
+    select {
+      margin-top: 20px;
+      padding: 5px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Daily Tasbih Tracker</h1>
+  <p id="label">Your Count:</p>
+  <div id="count">0</div>
+  <button class="increment" onclick="increment()" id="btnIncrement">+1</button>
+  <button class="reset" onclick="resetCount()" id="btnReset">Reset</button>
+
+  <div>
+    <label for="language">🌐 Language: </label>
+    <select id="language" onchange="setLanguage(this.value)">
+      <option value="en">English</option>
+      <option value="ur">اردو</option>
+      <option value="gu">ગુજરાતી</option>
+    </select>
+  </div>
+
+  <script>
+    // Load saved count from local storage
+    let count = localStorage.getItem("tasbihCount") || 0;
+    document.getElementById("count").textContent = count;
+
+    function increment() {
+      count++;
+      localStorage.setItem("tasbihCount", count);
+      document.getElementById("count").textContent = count;
+    }
+
+    function resetCount() {
+      count = 0;
+      localStorage.setItem("tasbihCount", count);
+      document.getElementById("count").textContent = count;
+    }
+
+    // Language dictionary
+    const translations = {
+      en: {
+        title: "Daily Tasbih Tracker",
+        label: "Your Count:",
+        increment: "+1",
+        reset: "Reset"
+      },
+      ur: {
+        title: "روزانہ تسبیح ٹریکر",
+        label: "آپ کی گنتی:",
+        increment: "+١",
+        reset: "ری سیٹ"
+      },
+      gu: {
+        title: "દૈનિક તસ્બીહ ટ્રેકર",
+        label: "તમારી ગણતરી:",
+        increment: "+૧",
+        reset: "રીસેટ"
+      }
+    };
+
+    function setLanguage(lang) {
+      const t = translations[lang];
+      document.getElementById("title").textContent = t.title;
+      document.getElementById("label").textContent = t.label;
+      document.getElementById("btnIncrement").textContent = t.increment;
+      document.getElementById("btnReset").textContent = t.reset;
+      localStorage.setItem("tasbihLang", lang);
+    }
+
+    // Load saved language preference
+    const savedLang = localStorage.getItem("tasbihLang") || "en";
+    document.getElementById("language").value = savedLang;
+    setLanguage(savedLang);
+  </script>
+</body>
+</html>
